@@ -15,6 +15,8 @@
  *
  */
 #include <string.h>
+#include <stdio.h>
+//#include <arm_neon.h>
 #include <jni.h>
 
 /* This is a trivial JNI example where we use a native method
@@ -59,5 +61,14 @@ Java_com_example_hellojni_HelloJni_stringFromJNI( JNIEnv* env,
    #define ABI "unknown"
 #endif
 
-    return (*env)->NewStringUTF(env, "Hello from JNI !  Compiled with ABI " ABI ".");
+#if defined (TESTSTR)
+#define GRADLE_STR " gradle "
+#else
+#define GRADLE_STR ""
+#endif
+
+    char buf[1024];
+    sprintf(buf, "%s %s: %s", __DATE__, __TIME__, "Hello from JNI ! Kun LIng" GRADLE_STR " Compiled with ABI "
+            ABI "." );
+    return (*env)->NewStringUTF(env, buf);
 }

@@ -19,6 +19,8 @@ import android.app.Activity;
 import android.widget.TextView;
 import android.os.Bundle;
 
+import java.util.Calendar;
+
 
 public class HelloJni extends Activity
 {
@@ -33,7 +35,8 @@ public class HelloJni extends Activity
          * function.
          */
         TextView  tv = new TextView(this);
-        tv.setText( stringFromJNI() );
+        String mydate = java.text.DateFormat.getDateTimeInstance().format(Calendar.getInstance().getTime());
+        tv.setText( mydate + "\n" +  stringFromJNI());
         setContentView(tv);
     }
 

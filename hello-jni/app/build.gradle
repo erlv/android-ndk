@@ -29,6 +29,11 @@ model {
          * ldLibs.addAll(["android", "log"])
          * stl       = "system"
          */
+        cppFlags.add("-mfpu=neon")
+        cppFlags.add("-DTESTSTR")
+        CFlags.add("-mfpu=neon")
+        CFlags.add("-DTESTSTR")
+
     }
     android.buildTypes {
         release {
@@ -39,11 +44,13 @@ model {
     android.productFlavors {
         // for detailed abiFilter descriptions, refer to "Supported ABIs" @
         // https://developer.android.com/ndk/guides/abis.html#sa
-        create("arm") {
-            ndk.abiFilters.add("armeabi")
-        }
+
         create("arm7") {
             ndk.abiFilters.add("armeabi-v7a")
+        }
+        /* Disable other architectures, currently we only care about armeabi-v7a with neon
+        create("arm") {
+            ndk.abiFilters.add("armeabi")
         }
         create("arm8") {
             ndk.abiFilters.add("arm64-v8a")
@@ -60,7 +67,8 @@ model {
         create("mips-64") {
             ndk.abiFilters.add("mips64")
         }
+        */
         // To include all cpu architectures, leaves abiFilters empty
-        create("all")
+        //create("all")
     }
 }
