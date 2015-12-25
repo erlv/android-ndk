@@ -16,11 +16,11 @@
  */
 #include <string.h>
 #include <stdio.h>
-#include <arm_neon.h>
 #include <jni.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <stdint.h>
+#include "MMScalar.h"
+#include "MMNeon.h"
 
 #define JSTRING_BUF_SIZE 4096
 #if defined(__arm__)
@@ -49,63 +49,119 @@
 
 #define N  256
 #define MAX 6
-int16_t A[N];
-int16_t B[N];
-int16_t C_1[N];
-int16_t C_2[N];
 
-void add_c() {
-    int i=0;
-    for (; i < N; i++) {
-        C_1[i] = A[i] + B[i];
+char* jni_buf;
+char* cur_jni_ptr;
+
+// Optimize for:
+// S1. A (512, 2048), B (2048, 1) = C ( 512, 1)
+// S2. A (8000, 640), B (640, 1) = C ( 8000， 1）
+// M1. A (512, 2048), B (2048, 128) = C ( 512, 128)
+// M2. A (8000, 640), B (640, 128) = C ( 8000， 128）
+void initRandomArray(int8_t * a, size_t sz) {
+    int i =0;
+    for(; i <sz; i++) {
+        int8_t r3 =  (int8_t) (rand()); // % 3;
+        a[i] = r3;
     }
 }
 
-void add_neon_c() {
-    int i=0;
-    for (; i < N; i +=8) {
-        int16x8_t v_a = vld1q_s16(&A[i]);
-        int16x8_t v_b = vld1q_s16(&B[i]);
-        int16x8_t v_c = vaddq_s16(v_a, v_b);
-        vst1q_s16(&C_2[i], v_c);
-    }
-}
-
-
-bool compare_arr() {
-    int i=0;
-    for(; i < N; i++) {
-        if (C_1[i] != C_2[i]) {
-            printf("%d: %d != %d\n", i, C_1[i], C_2[i]);
+bool compareRes(int8_t * res, int8_t* exp, size_t sz) {
+    int i = 0 ;
+    for (; i < sz; i++) {
+        if (res[i] != exp[i]) {
+            int char_cnt = sprintf(cur_jni_ptr, "%d:%d != %d\n",
+                i, res[i], exp[i]);
+            cur_jni_ptr += char_cnt;
             return false;
         }
     }
-    return true;
+    if (i  == sz)
+        return true;
+    else
+        return false;
 }
 
-char* fake_main() {
-    int i=0;
+int fake_main() {
+    jni_buf = malloc(JSTRING_BUF_SIZE*sizeof(char));
+    memset(jni_buf, 0, JSTRING_BUF_SIZE*sizeof(char));
+    cur_jni_ptr = jni_buf;
     srand(0);
-    for (; i< N; i++) {
-        A[i] = rand()/MAX;
-        B[i] = rand()/MAX;
-        C_1[i] = rand()/MAX;
-        C_2[i] = rand()/MAX;
+
+    // malloc the memory for 3 arries
+    int A_R, A_C, B_R, B_C, C_R, C_C;
+    // S1
+    const char* cur_str = "S1";
+    A_R = 512; A_C = 2048;
+    B_R = 2048; B_C = 1;
+    C_R = 512; C_C = 1;
+
+#if 0
+    // S2
+    const char* cur_str = "S2";
+    A_R = 8000; A_C = 640;
+    B_R = 640; B_C = 1;
+    C_R = 8000; C_C = 1;
+
+    // M1
+    const char* cur_str = "M1";
+    A_R = 512; A_C = 2048;
+    B_R = 2048; B_C = 128;
+    C_R = 512; C_C = 128;
+    // M2
+    const char* cur_str = "M2";
+    A_R = 8000; A_C = 640;
+    B_R = 640; B_C = 128;
+    C_R = 8000; C_C = 128;
+
+    // Random
+#endif
+
+    // 1. Init and malloc the array
+    int8_t* matA = malloc(A_R*A_C*sizeof(char));
+    int8_t* matB = malloc(B_R*B_C*sizeof(char));
+    int8_t* matC = malloc(C_R*C_C*sizeof(char));
+    int8_t* verifyC = malloc(C_R*C_C*sizeof(char));
+    initRandomArray(matA, A_R*A_C);
+    initRandomArray(matB, B_R*B_C);
+    memset(matC, 0, C_R*C_C);
+
+    // 2. Prepare the verifyC result
+    mmScalar(matA, matB, verifyC, A_R, C_C, A_C);
+
+
+    // 3. Prepare the 1st Neon Optimized matC result
+    mmNeon(matA, matB, matC, A_R, C_C, A_C);
+
+
+    // 4. Verify the result
+    if (!compareRes(matC, verifyC, C_R*C_C)) {
+        int char_cnt = sprintf(cur_jni_ptr, " FAILED\n");
+        cur_jni_ptr += char_cnt;
+        return 0;
+    } else {
+        int char_cnt = sprintf(cur_jni_ptr, " PASSED\n");
+        cur_jni_ptr += char_cnt;
     }
-    add_c();
-    add_neon_c();
-    bool is_pass = compare_arr();
-    char* buf = malloc(JSTRING_BUF_SIZE*sizeof(char));
-    memset(buf, 0, JSTRING_BUF_SIZE*sizeof(char));
-    sprintf(buf, "%s %s: %s\n Neon minitest:%s\n", __DATE__, __TIME__, "Hello from JNI !Compiled with ABI "
-    ABI "." , is_pass?"PASS":"FAIL");
-    return buf;
+
+
+    // 5. Performance test for sequential MM
+    // TODO: add timer for sequentail MM
+
+
+
+    // 6. Performance test for Neon Optimized MM
+    // TODO: add tmer for Neon optimized MM
+
+
+    return 0;
+
 }
 
 int main() {
-    char* buf = fake_main();
-    printf("%s",buf);
-    free(buf);
+    fake_main();
+    printf("%s",jni_buf);
+    free(jni_buf);
     return 0;
 }
 
@@ -119,6 +175,6 @@ jstring
 Java_com_example_hellojni_HelloJni_stringFromJNI( JNIEnv* env,
                                                   jobject thiz )
 {
-    char* buf = fake_main();
-    return (*env)->NewStringUTF(env, buf);
+    fake_main();
+    return (*env)->NewStringUTF(env, jni_buf);
 }
