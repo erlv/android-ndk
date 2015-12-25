@@ -19,11 +19,17 @@ import android.app.Activity;
 import android.widget.TextView;
 import android.os.Bundle;
 
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Calendar;
+import java.util.regex.Pattern;
 
 
 public class HelloJni extends Activity
 {
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -34,10 +40,11 @@ public class HelloJni extends Activity
          * the text is retrieved by calling a native
          * function.
          */
-        TextView  tv = new TextView(this);
+        TextView textJNI = new TextView(this);
         String mydate = java.text.DateFormat.getDateTimeInstance().format(Calendar.getInstance().getTime());
-        tv.setText( mydate + "\n" +  stringFromJNI());
-        setContentView(tv);
+        String cpufreqstr = readCpuFreqNow();
+        textJNI.setText(mydate + "\n" + stringFromJNI() + "\n" + cpufreqstr);
+        setContentView(textJNI);
     }
 
     /* A native method that is implemented by the
@@ -65,5 +72,78 @@ public class HelloJni extends Activity
      */
     static {
         System.loadLibrary("hello-jni");
+    }
+
+    private String readCpuFreqNow(){
+        File[] cpuFiles = getCPUs();
+        String numofcpu = (cpuFiles.length + " cpus\n");
+
+        String strFileList = "";
+        for(int i=0; i<cpuFiles.length; i++){
+
+            String path_scaling_cur_freq =
+                    cpuFiles[i].getAbsolutePath()+"/cpufreq/scaling_cur_freq";
+
+            String scaling_cur_freq = cmdCat(path_scaling_cur_freq).trim();
+            String path_min_freq =
+                    cpuFiles[i].getAbsolutePath()+"/cpufreq/cpuinfo_min_freq";
+
+            String min_freq = cmdCat(path_min_freq).trim();
+            String path_max_freq =
+                    cpuFiles[i].getAbsolutePath()+"/cpufreq/cpuinfo_max_freq";
+
+            String max_freq = cmdCat(path_max_freq).trim();
+            strFileList +=
+                    i + ":"+ scaling_cur_freq + " (" + min_freq + "--" + max_freq +")\n";
+        }
+
+        return numofcpu + strFileList;
+    }
+
+
+    private String cmdCat(String f){
+
+        String[] command = {"cat", f};
+        StringBuilder cmdReturn = new StringBuilder();
+
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            Process process = processBuilder.start();
+
+            InputStream inputStream = process.getInputStream();
+            int c;
+
+            while ((c = inputStream.read()) != -1) {
+                cmdReturn.append((char) c);
+            }
+
+            return cmdReturn.toString();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "Something Wrong";
+        }
+
+    }
+
+    /*
+     * Get file list of the pattern
+     * /sys/devices/system/cpu/cpu[0..9]
+     */
+    private File[] getCPUs(){
+
+        class CpuFilter implements FileFilter {
+            @Override
+            public boolean accept(File pathname) {
+                if(Pattern.matches("cpu[0-9]+", pathname.getName())) {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        File dir = new File("/sys/devices/system/cpu/");
+        File[] files = dir.listFiles(new CpuFilter());
+        return files;
     }
 }

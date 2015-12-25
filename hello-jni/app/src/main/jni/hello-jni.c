@@ -47,18 +47,8 @@ Java_com_example_hellojni_HelloJni_stringFromJNI( JNIEnv* env,
   #else
    #define ABI "armeabi"
   #endif
-#elif defined(__i386__)
-   #define ABI "x86"
-#elif defined(__x86_64__)
-   #define ABI "x86_64"
-#elif defined(__mips64)  /* mips64el-* toolchain defines __mips__ too */
-   #define ABI "mips64"
-#elif defined(__mips__)
-   #define ABI "mips"
-#elif defined(__aarch64__)
-   #define ABI "arm64-v8a"
 #else
-   #define ABI "unknown"
+#error currently the code is only for ARMV7 + NEON
 #endif
 
 #if defined (TESTSTR)
