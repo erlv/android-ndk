@@ -3,10 +3,11 @@
 //
 
 #include <arm_neon.h>
+#include "MMUtils.h"
 #include "MMNeon.h"
 
 
-static inline __attribute__((always_inline))  int8_t radd_neon_int8x16(int8x16_t v)  {
+STATIC inline __attribute__((always_inline))  int8_t radd_neon_int8x16(int8x16_t v)  {
     int8_t res=0;
 #if defined(__aarch64__)
     // AArch64 new intrinsics
@@ -19,7 +20,7 @@ static inline __attribute__((always_inline))  int8_t radd_neon_int8x16(int8x16_t
 }
 
 // Optimized for matA Matrix, matB vector
-static void mmNeonMVector_innerSIMD(int8_t *__restrict__ matA, int8_t *__restrict__ matB,
+STATIC void mmNeonMVector_innerSIMD(int8_t *__restrict__ matA, int8_t *__restrict__ matB,
                                     int8_t *__restrict__ matC, int D_M, int D_N, int D_K) {
     int i,j,k;
     for (i = 0; i < D_M; i++) {
@@ -41,7 +42,7 @@ static void mmNeonMVector_innerSIMD(int8_t *__restrict__ matA, int8_t *__restric
 
 
 // TODO: optimize the loop
-static void mmNeonMM_interchangeSIMD(int8_t *__restrict__ matA, int8_t *__restrict__ matB,
+STATIC void mmNeonMM_interchangeSIMD(int8_t *__restrict__ matA, int8_t *__restrict__ matB,
                                      int8_t *__restrict__ matC, int D_M, int D_N, int D_K) {
     int i,j,k;
     for (i = 0; i < D_M; i++) {

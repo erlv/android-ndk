@@ -1,7 +1,6 @@
 //
 // Created by kunling on 12/25/15.
 //
-
 #include "MMScalar.h"
 
 

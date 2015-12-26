@@ -1,5 +1,4 @@
 apply plugin: 'com.android.model.application'
-
 model {
     android {
         compileSdkVersion = 23
@@ -13,8 +12,8 @@ model {
     }
 
     compileOptions.with {
-        sourceCompatibility=JavaVersion.VERSION_1_7
-        targetCompatibility=JavaVersion.VERSION_1_7
+        sourceCompatibility = JavaVersion.VERSION_1_7
+        targetCompatibility = JavaVersion.VERSION_1_7
     }
 
     /*
@@ -33,6 +32,8 @@ model {
         cppFlags.add("-DTESTSTR")
         CFlags.add("-mfpu=neon")
         CFlags.add("-DTESTSTR")
+        CFlags.add("-O3")
+        cppFlags.add("-O3")
 
     }
     android.buildTypes {
