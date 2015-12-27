@@ -55,6 +55,7 @@ STATIC void mmNeonMM_interchangeSIMD(int8_t *__restrict__ matA, int8_t *__restri
     }
 }
 
+// TODO: add unit test for mmNeon
 void mmNeon(int8_t* __restrict__ matA, int8_t* __restrict__ matB, int8_t* __restrict__ matC,
             int D_M, int D_N, int D_K) {
 

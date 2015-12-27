@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <sys/time.h>
+#include "gflops.h"
 #include "MMScalar.h"
 #include "MMNeon.h"
 
@@ -46,11 +47,14 @@
 #error currently the code is only for ARMV7 + NEON
 #endif
 
-#define MMREPEAT 1000
+#define TOTALOPS 6000000000
 
 char* jni_buf;
 char* cur_jni_ptr;
 
+static long long max ( long long a, long long b) {
+    return a>b?a: b;
+}
 // Optimize for:
 // S1. A (512, 2048), B (2048, 1) = C ( 512, 1)
 // S2. A (8000, 640), B (640, 1) = C ( 8000， 1）
@@ -80,11 +84,30 @@ bool compareRes(int8_t * res, int8_t* exp, size_t sz) {
         return false;
 }
 
-static long long currentTimeInMilliseconds()
+static double currentTimeInMilliseconds()
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return ((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
+    return ((tv.tv_sec * 1000) + ((double)tv.tv_usec / (double)1000));
+}
+
+
+static void getIdealGFLOPS() {
+
+    // TODO: why the ideal GFLOPS test benchmark result is too much slower than ideal GFLOPS
+    //  Kirin 925 (Cortex-A15: 1.5G * 4  = 6GHz), Get result: 0.71GHz
+    double prev_curms, after_curms;
+    prev_curms = currentTimeInMilliseconds();
+    // run sequential MM MMREPEAT Times
+    long long  MMREPEAT = max(1, TOTALOPS/(GFLOPS_INNER_ITERATION));
+    float out = peakGFLOPS(MMREPEAT);
+    after_curms = currentTimeInMilliseconds();
+    double time_s = (double)(after_curms - prev_curms)/(double)1000;
+    double flops = (48 * 4 * GFLOPS_INNER_ITERATION * MMREPEAT) / time_s;
+    double gflops = flops /(double)1000000000;
+    int char_cnt = sprintf(cur_jni_ptr, "Runtime:%fs, Ideal GFLOPS: %f, return:%f\n",
+                           time_s, gflops, out);
+    cur_jni_ptr += char_cnt;
 }
 
 int fake_main() {
@@ -92,18 +115,24 @@ int fake_main() {
     memset(jni_buf, 0, JSTRING_BUF_SIZE*sizeof(char));
     cur_jni_ptr = jni_buf;
     srand(0);
+
+    // -1: Test Ideal GFLOPS for comparasion
+    getIdealGFLOPS();
+
     int char_cnt;
 
     // malloc the memory for 3 arries
     int A_R, A_C, B_R, B_C, C_R, C_C;
-    // S1
-    const char* cur_str = "S1"; C_R = A_R = 512; B_R = A_C = 2048; C_C = B_C = 1;
 
 #if 0
+    // S1
+    const char* cur_str = "S1"; C_R = A_R = 512; B_R = A_C = 2048; C_C = B_C = 1;
     // S2
     const char* cur_str = "S2"; A_R = 8000; A_C = 640; B_R = 640; B_C = 1; C_R = 8000; C_C = 1;
+#endif
     // M1
     const char* cur_str = "M1"; A_R = 512; A_C = 2048; B_R = 2048; B_C = 128; C_R = 512; C_C = 128;
+#if 0
     // M2
     const char* cur_str = "M2"; A_R = 8000; A_C = 640; B_R = 640; B_C = 128; C_R = 8000; C_C = 128;
     // Random
@@ -130,7 +159,7 @@ int fake_main() {
     mmNeon(matA, matB, matC, A_R, C_C, A_C);
 
     // 4. Verify the result
-    if (!compareRes(matC, verifyC, C_R*C_C)) {
+    if (!compareRes(matC, verifyC, C_R * C_C)) {
         char_cnt = sprintf(cur_jni_ptr, " Verification: FAILED\n");
         cur_jni_ptr += char_cnt;
         return 0;
@@ -139,31 +168,30 @@ int fake_main() {
         cur_jni_ptr += char_cnt;
     }
 
-    long long prev_curms, after_curms;
+    double prev_curms, after_curms;
+    long long MMREPEAT = max(1, TOTALOPS/(A_R*C_C*A_C));
     int i;
     // 5. Performance test for sequential MM
-    // TODO: add timer for sequentail MM
     prev_curms = currentTimeInMilliseconds();
     // run sequential MM MMREPEAT Times
     for(  i=0; i < MMREPEAT; i++) {
         mmScalar(matA, matB, verifyC, A_R, C_C, A_C);
     }
     after_curms = currentTimeInMilliseconds();
-    float gops = (2.0 * MMREPEAT * A_R * C_C * A_C) / ((float)((after_curms - prev_curms) * 1000000));
-    char_cnt = sprintf(cur_jni_ptr, "%d x SequentialMM runtime: %lldms, %fGOPS\n", MMREPEAT,
+    double gops = (2.0 * MMREPEAT * A_R * C_C * A_C) / ((double)((after_curms - prev_curms) * 1000000));
+    char_cnt = sprintf(cur_jni_ptr, "%lld x SequentialMM runtime: %fms, %fGOPS\n", MMREPEAT,
                            after_curms - prev_curms, gops);
     cur_jni_ptr += char_cnt;
 
     // 6. Performance test for Neon Optimized MM
-    // TODO: add tmer for Neon optimized MM
     prev_curms = currentTimeInMilliseconds();
     // run sequential MM MMREPEAT Times
     for(  i=0; i < MMREPEAT; i++) {
         mmNeon(matA, matB, verifyC, A_R, C_C, A_C);
     }
     after_curms = currentTimeInMilliseconds();
-    gops = (2.0 * MMREPEAT * A_R * C_C * A_C) / ((float)((after_curms - prev_curms) * 1000000));
-    char_cnt = sprintf(cur_jni_ptr, "%d x NeonMM runtime: %lldms, %fGOPS\n", MMREPEAT,
+    gops = (2.0 * MMREPEAT * A_R * C_C * A_C) / ((double)((after_curms - prev_curms) * 1000000));
+    char_cnt = sprintf(cur_jni_ptr, "%lld x NeonMM runtime: %fms, %fGOPS\n", MMREPEAT,
                            after_curms - prev_curms, gops);
     cur_jni_ptr += char_cnt;
     return 0;
