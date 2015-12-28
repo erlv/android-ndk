@@ -88,7 +88,7 @@ static double currentTimeInMilliseconds()
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return ((tv.tv_sec * 1000) + ((double)tv.tv_usec / (double)1000));
+    return ((double)(tv.tv_sec * 1000) + ((double)tv.tv_usec / (double)1000));
 }
 
 
@@ -99,14 +99,15 @@ static void getIdealGFLOPS() {
     double prev_curms, after_curms;
     prev_curms = currentTimeInMilliseconds();
     // run sequential MM MMREPEAT Times
-    long long  MMREPEAT = max(1, TOTALOPS/(GFLOPS_INNER_ITERATION));
+    long long  MMREPEAT = max(1, TOTALOPS/(GFLOPS_INNER_ITERATION*100));
     float out = peakGFLOPS(MMREPEAT);
     after_curms = currentTimeInMilliseconds();
+
     double time_s = (double)(after_curms - prev_curms)/(double)1000;
     double flops = (48 * 4 * GFLOPS_INNER_ITERATION * MMREPEAT) / time_s;
     double gflops = flops /(double)1000000000;
-    int char_cnt = sprintf(cur_jni_ptr, "Runtime:%fs, Ideal GFLOPS: %f, return:%f\n",
-                           time_s, gflops, out);
+    int char_cnt = sprintf(cur_jni_ptr, "Runtime:%.3fs,  %.3fGFLOPS\n",
+                           time_s, gflops);
     cur_jni_ptr += char_cnt;
 }
 
@@ -122,20 +123,23 @@ int fake_main() {
     int char_cnt;
 
     // malloc the memory for 3 arries
-    int A_R, A_C, B_R, B_C, C_R, C_C;
+    size_t A_R, A_C, B_R, B_C, C_R, C_C;
 
 #if 0
     // S1
     const char* cur_str = "S1"; C_R = A_R = 512; B_R = A_C = 2048; C_C = B_C = 1;
     // S2
     const char* cur_str = "S2"; A_R = 8000; A_C = 640; B_R = 640; B_C = 1; C_R = 8000; C_C = 1;
-#endif
     // M1
-    const char* cur_str = "M1"; A_R = 512; A_C = 2048; B_R = 2048; B_C = 128; C_R = 512; C_C = 128;
-#if 0
+    const char* cur_str = "M1"; A_R = 512; A_C = 2048; B_R = 2048; B_C = 128;
+    C_R = 512; C_C = 128;
+#endif
+
     // M2
     const char* cur_str = "M2"; A_R = 8000; A_C = 640; B_R = 640; B_C = 128; C_R = 8000; C_C = 128;
     // Random
+#if 0
+
 #endif
 
     // 0. Output test information:
@@ -178,21 +182,26 @@ int fake_main() {
         mmScalar(matA, matB, verifyC, A_R, C_C, A_C);
     }
     after_curms = currentTimeInMilliseconds();
-    double gops = (2.0 * MMREPEAT * A_R * C_C * A_C) / ((double)((after_curms - prev_curms) * 1000000));
-    char_cnt = sprintf(cur_jni_ptr, "%lld x SequentialMM runtime: %fms, %fGOPS\n", MMREPEAT,
-                           after_curms - prev_curms, gops);
+    double time_s = (after_curms - prev_curms)/(double)1000;
+    double ops = (2.0 * MMREPEAT * A_R * C_C * A_C) / time_s;
+    double gops = ops/(double)1000000000;
+    char_cnt = sprintf(cur_jni_ptr, "%lld x SequentialMM runtime: %.3fs, %.3fGOPS\n", MMREPEAT,
+                           time_s, gops);
     cur_jni_ptr += char_cnt;
 
     // 6. Performance test for Neon Optimized MM
     prev_curms = currentTimeInMilliseconds();
+    long long NeonMMREPEAT = MMREPEAT * 10;
     // run sequential MM MMREPEAT Times
-    for(  i=0; i < MMREPEAT; i++) {
+    for(  i=0; i < NeonMMREPEAT; i++) {
         mmNeon(matA, matB, verifyC, A_R, C_C, A_C);
     }
     after_curms = currentTimeInMilliseconds();
-    gops = (2.0 * MMREPEAT * A_R * C_C * A_C) / ((double)((after_curms - prev_curms) * 1000000));
-    char_cnt = sprintf(cur_jni_ptr, "%lld x NeonMM runtime: %fms, %fGOPS\n", MMREPEAT,
-                           after_curms - prev_curms, gops);
+    time_s = (after_curms - prev_curms)/(double)1000;
+    ops = (2.0 * NeonMMREPEAT * A_R * C_C * A_C) / time_s;
+    gops = ops / (double)1000000000;
+    char_cnt = sprintf(cur_jni_ptr, "%lld x NeonMM runtime: %.3fs, %.3fGOPS\n", NeonMMREPEAT,
+                           time_s, gops);
     cur_jni_ptr += char_cnt;
     return 0;
 }

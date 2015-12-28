@@ -24,32 +24,151 @@ STATIC void mmNeonMVector_innerSIMD(int8_t *__restrict__ matA, int8_t *__restric
                                     int8_t *__restrict__ matC, int D_M, int D_N, int D_K) {
     int i,j,k;
     for (i = 0; i < D_M; i++) {
-        for (j = 0; j < D_N; j++) {
             int8x16_t v_res_16 = vdupq_n_s8(0);
             for (k=0; k <= D_K-15; k+=16) {
                 int8x16_t v_A_16 =  vld1q_s8(&matA[i*D_K + k]);
-                int8x16_t v_B_16 =  vld1q_s8(&matB[j*D_N + k]);
+                int8x16_t v_B_16 =  vld1q_s8(&matB[k]);
                 v_res_16 = vmlaq_s8(v_res_16, v_A_16, v_B_16);
             }
             int8_t res = radd_neon_int8x16(v_res_16);
             for(; k < D_K; k++) { //cleanup loop
-                res += matA[i*D_K + k] * matB[j*D_N + k];
+                res += matA[i*D_K + k] * matB[k];
+            }
+            matC[i*D_N] = res;
+    }
+}
+
+// v0: interchange the loop of j and k
+STATIC void mmNeonMM_interchangeSIMD_v_m0(int8_t *__restrict__ matA, int8_t *__restrict__ matB,
+                                        int8_t *__restrict__ matC, int D_M, int D_N, int D_K) {
+    int i,j,k;
+    for (i = 0; i < D_M; i++) {
+        for (j = 0; j < D_N; j++) {
+            int8_t res = 0;
+            for (k=0; k < D_K; k++) {
+                res += matA[i*D_K + k] * matB[k*D_N + j];
             }
             matC[i*D_N + j] = res;
         }
     }
 }
 
+// v0: interchange the loop of j and k
+STATIC void mmNeonMM_interchangeSIMD_v0(int8_t *__restrict__ matA, int8_t *__restrict__ matB,
+                                        int8_t *__restrict__ matC, int D_M, int D_N, int D_K) {
+    int i, j, k;
+    for (i = 0; i < D_M; i++) {
+        for (k = 0; k <= D_K; k++) {
+            int8_t temp = matA[i * D_K + k];
+            for (j = 0; j < D_N; j++) {
+                matC[i * D_N + j] += temp * matB[k * D_N + j];
+            }
+        }
+    }
+}
 
-// TODO: optimize the loop
-STATIC void mmNeonMM_interchangeSIMD(int8_t *__restrict__ matA, int8_t *__restrict__ matB,
+// v1: vectorize the inner j loop
+STATIC void mmNeonMM_interchangeSIMD_v1(int8_t *__restrict__ matA, int8_t *__restrict__ matB,
+                                        int8_t *__restrict__ matC, int D_M, int D_N, int D_K) {
+    int i, j, k;
+    for (i = 0; i < D_M; i++) {
+        for (k = 0; k < D_K; k ++) {
+            int8_t temp = matA[i * D_K + k];
+            int8x16_t v_temp = vdupq_n_s8(temp);
+            for (j = 0; j <= D_N - 15; j += 16) {
+                int8x16_t v_C_16 = vld1q_s8(&matC[i * D_N + j]);
+                int8x16_t v_B_16 = vld1q_s8(&matB[k * D_N + j]);
+                v_C_16 = vmlaq_s8(v_C_16, v_B_16, v_temp);
+                vst1q_s8(&matC[i * D_N + j], v_C_16);
+            }
+            for (; j < D_N; j++) {
+                int8_t matC_temp = matC[i * D_N + j];
+                matC_temp += temp * matB[k * D_N + j];
+                matC[i * D_N + j] = matC_temp;
+            }
+        }
+    }
+}
+
+
+// v2: unroll k loop
+STATIC void mmNeonMM_interchangeSIMD_v2(int8_t *__restrict__ matA, int8_t *__restrict__ matB,
+                                        int8_t *__restrict__ matC, int D_M, int D_N, int D_K) {
+    int i, j, k;
+    for (i = 0; i < D_M; i++) {
+        for (k = 0; k <= D_K - 3; k += 4) {
+            int8_t temp = matA[i * D_K + k];
+            int8_t temp_1 = matA[i*D_K + k+1];
+            int8_t temp_2 = matA[i*D_K + k+2];
+            int8_t temp_3 = matA[i*D_K + k+3];
+            for (j = 0; j < D_N; j++) {
+                int8_t matC_temp = matC[i*D_N + j];
+                matC_temp += temp * matB[k*D_N + j];
+                matC_temp += temp_1 * matB[(k+1)*D_N + j];
+                matC_temp += temp_2 * matB[(k+2)*D_N + j];
+                matC_temp += temp_3 * matB[(k+3)*D_N + j];
+                matC[i*D_N + j] = matC_temp;
+            }
+        }
+        for (; k < D_K; k++) {
+            int8_t temp = matA[i * D_K + k];
+            for (; j < D_N; j++) {
+                int8_t matC_temp = matC[i * D_N + j];
+                matC_temp += temp * matB[k * D_N + j];
+                matC[i * D_N + j] = matC_temp;
+            }
+        }
+    }
+}
+
+// v3: vectorize the inner j loop + unroll the outer k loop
+STATIC void mmNeonMM_interchangeSIMD_v3(int8_t *__restrict__ matA, int8_t *__restrict__ matB,
                                      int8_t *__restrict__ matC, int D_M, int D_N, int D_K) {
     int i,j,k;
     for (i = 0; i < D_M; i++) {
-        for (k=0; k < D_K; k++) {
+        for (k=0; k <= D_K-3; k+= 4) {
             int8_t temp = matA[i*D_K + k];
-            for (j = 0; j < D_N; j++) {
-                matC[i*D_N+j] += temp * matB[k*D_N + j];
+            int8_t temp_1 = matA[i*D_K + k+1];
+            int8_t temp_2 = matA[i*D_K + k+2];
+            int8_t temp_3 = matA[i*D_K + k+3];
+            int8x16_t v_temp = vdupq_n_s8(temp);
+            int8x16_t v_temp_1 = vdupq_n_s8(temp_1);
+            int8x16_t v_temp_2 = vdupq_n_s8(temp_2);
+            int8x16_t v_temp_3 = vdupq_n_s8(temp_3);
+            for (j = 0; j <= D_N-15; j+=16) {
+                int8x16_t v_C_16 = vld1q_s8(&matC[i * D_N + j]);
+                int8x16_t v_B_16 = vld1q_s8(&matB[k * D_N + j]);
+                int8x16_t v_B_16_1 = vld1q_s8(&matB[(k+1) * D_N + j]);
+                int8x16_t v_B_16_2 = vld1q_s8(&matB[(k+2) * D_N + j]);
+                int8x16_t v_B_16_3 = vld1q_s8(&matB[(k+3) * D_N + j]);
+                v_C_16 = vmlaq_s8(v_C_16, v_B_16, v_temp);
+                v_C_16 = vmlaq_s8(v_C_16, v_B_16_1, v_temp_1);
+                v_C_16 = vmlaq_s8(v_C_16, v_B_16_2, v_temp_2);
+                v_C_16 = vmlaq_s8(v_C_16, v_B_16_3, v_temp_3);
+                vst1q_s8(&matC[i * D_N + j], v_C_16);
+            }
+            for(; j < D_N; j++) {
+                int8_t matC_temp = matC[i*D_N + j];
+                matC_temp += temp * matB[k*D_N + j];
+                matC_temp += temp_1 * matB[(k+1)*D_N + j];
+                matC_temp += temp_2 * matB[(k+2)*D_N + j];
+                matC_temp += temp_3 * matB[(k+3)*D_N + j];
+                matC[i*D_N + j] = matC_temp;
+            }
+        }
+        for (; k < D_K; k++) {
+            int8_t temp = matA[i * D_K + k];
+            int8x16_t v_temp = vdupq_n_s8(temp);
+            for (j = 0; j <= D_N - 15; j += 16) {
+                int8x16_t v_C_16 = vld1q_s8(&matC[i * D_N + j]);
+                int8x16_t v_B_16 = vld1q_s8(&matB[k * D_N + j]);
+                v_C_16 = vmlaq_s8(v_C_16, v_B_16, v_temp);
+                vst1q_s8(&matC[i * D_N + j], v_C_16);
+            }
+            for (; j < D_N; j++) {
+                int8_t matC_temp = matC[i * D_N + j];
+                matC_temp += temp * matB[k * D_N + j];
+                matC[i * D_N + j] = matC_temp;
             }
         }
     }
@@ -62,7 +181,6 @@ void mmNeon(int8_t* __restrict__ matA, int8_t* __restrict__ matB, int8_t* __rest
     if (D_N == 1) {
         mmNeonMVector_innerSIMD(matA, matB, matC, D_M, D_N, D_K);
     } else {
-        mmNeonMM_interchangeSIMD(matA, matB, matC, D_M, D_N, D_K);
+        mmNeonMM_interchangeSIMD_v3(matA, matB, matC, D_M, D_N, D_K);
     }
-
 }
