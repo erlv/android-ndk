@@ -40,58 +40,6 @@ float test_f32_mac_Neon(float x, float y, uint64_t iterations){
         while (i < GFLOPS_INNER_ITERATION){
             //  Here's the meat - the part that really matters.
 /*
-            r0 = vaddq_f32(r0,rC);
-            r1 = vsubq_f32(r1,rD);
-            r2 = vaddq_f32(r2,rE);
-            r3 = vsubq_f32(r3,rF);
-            r4 = vaddq_f32(r4,rC);
-            r5 = vsubq_f32(r5,rD);
-            r6 = vaddq_f32(r6,rE);
-            r7 = vsubq_f32(r7,rF);
-            r8 = vaddq_f32(r8,rC);
-            r9 = vsubq_f32(r9,rD);
-            rA = vaddq_f32(rA,rE);
-            rB = vsubq_f32(rB,rF);
-
-            r0 = vsubq_f32(r0,rF);
-            r1 = vaddq_f32(r1,rE);
-            r2 = vsubq_f32(r2,rD);
-            r3 = vaddq_f32(r3,rC);
-            r4 = vsubq_f32(r4,rF);
-            r5 = vaddq_f32(r5,rE);
-            r6 = vsubq_f32(r6,rD);
-            r7 = vaddq_f32(r7,rC);
-            r8 = vsubq_f32(r8,rF);
-            r9 = vaddq_f32(r9,rE);
-            rA = vsubq_f32(rA,rD);
-            rB = vaddq_f32(rB,rC);
-            r0 = vaddq_f32(r0,rC);
-            r1 = vsubq_f32(r1,rD);
-            r2 = vaddq_f32(r2,rE);
-            r3 = vsubq_f32(r3,rF);
-            r4 = vaddq_f32(r4,rC);
-            r5 = vsubq_f32(r5,rD);
-            r6 = vaddq_f32(r6,rE);
-            r7 = vsubq_f32(r7,rF);
-            r8 = vaddq_f32(r8,rC);
-            r9 = vsubq_f32(r9,rD);
-            rA = vaddq_f32(rA,rE);
-            rB = vsubq_f32(rB,rF);
-
-            r0 = vsubq_f32(r0,rF);
-            r1 = vaddq_f32(r1,rE);
-            r2 = vsubq_f32(r2,rD);
-            r3 = vaddq_f32(r3,rC);
-            r4 = vsubq_f32(r4,rF);
-            r5 = vaddq_f32(r5,rE);
-            r6 = vsubq_f32(r6,rD);
-            r7 = vaddq_f32(r7,rC);
-            r8 = vsubq_f32(r8,rF);
-            r9 = vaddq_f32(r9,rE);
-            rA = vsubq_f32(rA,rD);
-            rB = vaddq_f32(rB,rC);
-            */
-/*
  *  MUL + ADD + SUB
  */
             r0 = vmulq_f32(r0,rC);
@@ -146,43 +94,6 @@ float test_f32_mac_Neon(float x, float y, uint64_t iterations){
             rA = vsubq_f32(rA,rD);
             rB = vmulq_f32(rB,rC);
 
-/*
- *          // Code with mul, mla, mls
-            r0 = vmlaq_f32(rF, r0,rC);
-            r1 = vaddq_f32(r1,rD);
-            r2 = vmlsq_f32(rD,r2,rE);
-            r3 = vsubq_f32(r3,rF);
-            r4 = vmlaq_f32(rF, r4,rC);
-            r5 = vaddq_f32(r5,rD);
-            r6 = vmlsq_f32(rD, r6,rE);
-            r7 = vsubq_f32(r7,rF);
-            r8 = vmlaq_f32(rF, r8,rC);
-            r9 = vaddq_f32(r9,rD);
-            rA = vmlsq_f32(rD, rA,rE);
-            rB = vsubq_f32(rB,rF);
-
-            r1 = vmlaq_f32(rD, r1, rE);
-            r3 = vmlsq_f32(rF, r3, rC);
-            r5 = vmlaq_f32(rD, r5,rE);
-            r7 = vmlsq_f32(rF, r7,rC);
-            r9 = vmlaq_f32(rD, r9,rE);
-            rB = vmlsq_f32(rF, rB,rC);
-
-            r0 = vmlaq_f32(rF, r0, rC);
-            r2 = vmlsq_f32(rD, r2, rE);
-            r4 = vmlaq_f32(rF, r4, rC);
-            r6 = vmlsq_f32(rD, r6,rE);
-            r8 = vmlaq_f32(rF, r8,rC);
-            rA = vmlsq_f32(rD, rA,rE);
-
-            r1 = vmulq_f32(r1,rE);
-            r3 = vmulq_f32(r3,rC);
-            r5 = vmulq_f32(r5,rE);
-            r7 = vmulq_f32(r7,rC);
-            r9 = vmulq_f32(r9,rE);
-            rB = vmulq_f32(rB,rC);
-
-*/
             i++;
         }
 
@@ -239,7 +150,7 @@ float test_f32_mac_Neon(float x, float y, uint64_t iterations){
     return out;
 }
 
-float test_s32_mac_Neon(float x, float y, uint64_t iterations){
+int32_t test_s32_mac_Neon(int32_t x, int32_t y, uint64_t iterations){
     register int32x4_t r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     //  Generate starting data.
@@ -377,117 +288,13 @@ float test_s32_mac_Neon(float x, float y, uint64_t iterations){
     out_s32 += ((int32_t*)&temp)[1];
     out_s32 += ((int32_t*)&temp)[3];
     out_s32 += ((int32_t*)&temp)[4];
-    float out = (float) out_s32;
-    return out;
+    return out_s32;
 }
 
-
-
-
-/*
- * TODO:Compiler will optimize the int +/-/&/|, we need a way to prevent the optimization.
- */
-int test_s32_Scalar(int32_t x, int32_t y, uint64_t iterations) {
-    register int32_t r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
-
-    //  Generate starting data.
-    r0 = (x);
-    r1 = (y);
-    r8 = 0x0;
-    r2 = r0^r8;
-    r3 = r0|r8;
-    r4 = r0&r8;
-    r5 = r1*3;
-    r6 = r1*2;
-    r7 = r1*4;
-    r8 = r0+3;
-    r9 = r1+2;
-    rA = r0-4;
-    rB = r1-4;
-
-    rC = r2 & r3;
-    rD = r3 & rA;
-    rE = r2 | r5;
-    rF = r3 | rA;
-
-    uint64_t c = 0;
-    while (c < iterations){
-        size_t i = 0;
-        while (i < 100000000){
-            //  Here's the meat - the part that really matters.
-            r0 = (r0+rC);
-            r1 = (r1-rD);
-            r2 = (r2+rE);
-            r3 = (r3-rF);
-            r4 = (r4+rC);
-            r5 = (r5-rD);
-            r6 = (r6+rE);
-            r7 = (r7-rF);
-            r8 = (r8+rC);
-            r9 = (r9-rD);
-            rA = (rA+rE);
-            rB = (rB-rF);
-
-            r0 = (r0-rF);
-            r1 = (r1+rE);
-            r2 = (r2-rD);
-            r3 = (r3+rC);
-            r4 = (r4-rF);
-            r5 = (r5+rE);
-            r6 = (r6-rD);
-            r7 = (r7+rC);
-            r8 = (r8-rF);
-            r9 = (r9+rE);
-            rA = (rA-rD);
-            rB = (rB+rC);
-
-            r0 = (r0+rC);
-            r1 = (r1-rD);
-            r2 = (r2+rE);
-            r3 = (r3-rF);
-            r4 = (r4+rC);
-            r5 = (r5-rD);
-            r6 = (r6+rE);
-            r7 = (r7-rF);
-            r8 = (r8+rC);
-            r9 = (r9-rD);
-            rA = (rA+rE);
-            rB = (rB-rF);
-
-            r0 = (r0-rF);
-            r1 = (r1+rE);
-            r2 = (r2-rD);
-            r3 = (r3+rC);
-            r4 = (r4-rF);
-            r5 = (r5+rE);
-            r6 = (r6-rD);
-            r7 = (r7+rC);
-            r8 = (r8-rF);
-            r9 = (r9+rE);
-            rA = (rA-rD);
-            rB = (rB+rC);
-            i++;
-        }
-
-        c++;
-    }
-    r0 = (r0+r1);
-    r2 = (r2+r3);
-    r4 = (r4+r5);
-    r6 = (r6+r7);
-    r8 = (r8+r9);
-    rA = (rA+rB);
-    r0 = (r0+r2);
-    r4 = (r4+r6);
-    r8 = (r8+rA);
-    r0 = (r0+r4);
-    r0 = (r0+r8);
-    //  Prevent Dead Code Elimination
-    return r0;
+float peakGFLOPS(uint64_t iterations) {
+    return test_f32_mac_Neon(1.1,2.1,iterations);
 }
 
-float peakGFLOPS(long long iterations) {
-    return test_s32_mac_Neon(1.1,2.1,iterations);
-    //return test_s32_Scalar(1,2,iterations);
-
+int32_t peakInt8GOps(uint64_t iterations) {
+    return test_s32_mac_Neon(1, 2, iterations);
 }

@@ -52,7 +52,7 @@
 char* jni_buf;
 char* cur_jni_ptr;
 
-static long long max ( long long a, long long b) {
+static unsigned long long max ( unsigned long long a, unsigned long long b) {
     return a>b?a: b;
 }
 // Optimize for:
@@ -99,19 +99,39 @@ static void getIdealGFLOPS() {
     double prev_curms, after_curms;
     prev_curms = currentTimeInMilliseconds();
     // run sequential MM MMREPEAT Times
-    long long  MMREPEAT = max(1, TOTALOPS/(GFLOPS_INNER_ITERATION*100));
+    unsigned long long  MMREPEAT = (unsigned long long)max(1, TOTALOPS/(GFLOPS_INNER_ITERATION*100));
     float out = peakGFLOPS(MMREPEAT);
     after_curms = currentTimeInMilliseconds();
 
     double time_s = (double)(after_curms - prev_curms)/(double)1000;
     double flops = (48 * 4 * GFLOPS_INNER_ITERATION * MMREPEAT) / time_s;
     double gflops = flops /(double)1000000000;
-    int char_cnt = sprintf(cur_jni_ptr, "Runtime:%.3fs,  %.3fGFLOPS\n",
+    int char_cnt = sprintf(cur_jni_ptr, "Float32 Peak Test. Runtime:%.3fs,  %.3fGFLOPS\n",
                            time_s, gflops);
     cur_jni_ptr += char_cnt;
 }
 
-int fake_main() {
+static void getIdealIntGOPS() {
+
+    // TODO: why the ideal GFLOPS test benchmark result is too much slower than ideal GFLOPS
+    //  Kirin 925 (Cortex-A15: 1.5G * 4  = 6GHz), Get result: 0.71GHz
+    double prev_curms, after_curms;
+    prev_curms = currentTimeInMilliseconds();
+    // run sequential MM MMREPEAT Times
+    unsigned long long  MMREPEAT = (unsigned long long)max(1, TOTALOPS/(GFLOPS_INNER_ITERATION*100));
+    int32_t out = peakInt8GOps(MMREPEAT);
+    after_curms = currentTimeInMilliseconds();
+
+    double time_s = (double)(after_curms - prev_curms)/(double)1000;
+    double flops = (48 * 4 * GFLOPS_INNER_ITERATION * MMREPEAT) / time_s;
+    double gflops = flops /(double)1000000000;
+    int char_cnt = sprintf(cur_jni_ptr, "Int32 Peak Test. Runtime:%.3fs,  %.3fGOPS, "
+                           "Int8 Peak(int32x4): %.3fGOPS\n", time_s, gflops, gflops*4);
+    cur_jni_ptr += char_cnt;
+}
+
+
+int fake_main_v1(int d1, int d2, int d3) {
     jni_buf = malloc(JSTRING_BUF_SIZE*sizeof(char));
     memset(jni_buf, 0, JSTRING_BUF_SIZE*sizeof(char));
     cur_jni_ptr = jni_buf;
@@ -119,32 +139,16 @@ int fake_main() {
 
     // -1: Test Ideal GFLOPS for comparasion
     getIdealGFLOPS();
+    getIdealIntGOPS();
 
     int char_cnt;
 
-    // malloc the memory for 3 arries
     size_t A_R, A_C, B_R, B_C, C_R, C_C;
-
-#if 0
-    // S1
-    const char* cur_str = "S1"; C_R = A_R = 512; B_R = A_C = 2048; C_C = B_C = 1;
-    // S2
-    const char* cur_str = "S2"; A_R = 8000; A_C = 640; B_R = 640; B_C = 1; C_R = 8000; C_C = 1;
-    // M1
-    const char* cur_str = "M1"; A_R = 512; A_C = 2048; B_R = 2048; B_C = 128;
-    C_R = 512; C_C = 128;
-#endif
-
-    // M2
-    const char* cur_str = "M2"; A_R = 8000; A_C = 640; B_R = 640; B_C = 128; C_R = 8000; C_C = 128;
-    // Random
-#if 0
-
-#endif
+    C_R = A_R = d1; B_R = A_C = d2; C_C = B_C = d3;
 
     // 0. Output test information:
     char_cnt = sprintf(cur_jni_ptr, " Test Pattern: dim(M)=(%d, %d), dim(x)=(%d, %d), "
-                                    "result=(%d,%d)\n", A_R, A_C, B_R, B_C, C_R, C_C);
+            "result=(%d,%d)\n", A_R, A_C, B_R, B_C, C_R, C_C);
     cur_jni_ptr += char_cnt;
 
     // 1. Init and malloc the array
@@ -173,7 +177,7 @@ int fake_main() {
     }
 
     double prev_curms, after_curms;
-    long long MMREPEAT = max(1, TOTALOPS/(A_R*C_C*A_C));
+    long long MMREPEAT = max(1, (unsigned long long)TOTALOPS/(A_R*C_C*A_C));
     int i;
     // 5. Performance test for sequential MM
     prev_curms = currentTimeInMilliseconds();
@@ -186,7 +190,7 @@ int fake_main() {
     double ops = (2.0 * MMREPEAT * A_R * C_C * A_C) / time_s;
     double gops = ops/(double)1000000000;
     char_cnt = sprintf(cur_jni_ptr, "%lld x SequentialMM runtime: %.3fs, %.3fGOPS\n", MMREPEAT,
-                           time_s, gops);
+                       time_s, gops);
     cur_jni_ptr += char_cnt;
 
     // 6. Performance test for Neon Optimized MM
@@ -201,8 +205,16 @@ int fake_main() {
     ops = (2.0 * NeonMMREPEAT * A_R * C_C * A_C) / time_s;
     gops = ops / (double)1000000000;
     char_cnt = sprintf(cur_jni_ptr, "%lld x NeonMM runtime: %.3fs, %.3fGOPS\n", NeonMMREPEAT,
-                           time_s, gops);
+                       time_s, gops);
     cur_jni_ptr += char_cnt;
+}
+
+int fake_main() {
+
+    fake_main_v1(512, 2048, 1);
+    fake_main_v1(8000, 640, 1);
+    fake_main_v1(512, 2048, 128);
+    fake_main_v1(8000, 640, 128);
     return 0;
 }
 
@@ -221,8 +233,8 @@ int main() {
  */
 jstring
 Java_com_example_hellojni_HelloJni_stringFromJNI( JNIEnv* env,
-                                                  jobject thiz )
+                                                  jobject thiz, jint d1, jint d2, jint d3 )
 {
-    fake_main();
+    fake_main_v1(d1, d2, d3);
     return (*env)->NewStringUTF(env, jni_buf);
 }

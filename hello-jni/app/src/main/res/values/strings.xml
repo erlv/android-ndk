@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">HelloJni</string>
+    <string name="s2btn">S2(8000x640x1)</string>
+    <string name="m1btn">M1(512x2048x128)</string>
+    <string name="s1btn">S1(512x2048x1)</string>
+    <string name="m2btn">M2(8000x640x128)</string>
+    <string name="custombtn">Custom</string>
 </resources>
