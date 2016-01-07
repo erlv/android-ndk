@@ -23,6 +23,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.os.Bundle;
 import android.os.Build;
+import android.support.v7.app.AppCompatActivity;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -32,7 +33,7 @@ import java.util.Calendar;
 import java.util.regex.Pattern;
 
 
-public class HelloJni extends Activity
+public class HelloJni extends AppCompatActivity
 {
 
     /** Called when the activity is first created. */

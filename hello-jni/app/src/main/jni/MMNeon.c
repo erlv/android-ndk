@@ -207,7 +207,7 @@ void mmNeonMM_blocking_kernel_16x16_v0(int8_t* __restrict__ matA, int8_t* __rest
                                        int8_t* __restrict__ matC) {
     int i, j, k;
     for (i = 0; i < 16; i++) {
-        for (k = 0; k <= 16; k++) {
+        for (k = 0; k < 16; k++) {
             int8_t temp = matA[i * 16 + k];
             for (j = 0; j < 16; j++) {
                 matC[i * 16 + j] += temp * matB[k * 16 + j];
@@ -230,8 +230,8 @@ void mmNeonMM_interchangeSIMD_v4(int8_t* __restrict__ A, int8_t* __restrict__ B,
         }
     }
     for (i = 0; i < D_M; i+=block_size) {
-        for (j = 0; j < D_N; j+=block_size) {
-            for (k=0; k < D_K; k+=block_size) {
+        for (k=0; k < D_K; k+=block_size) {
+            for (j = 0; j < D_N; j+=block_size) {
                 mmNeonMM_blocking_kernel_16x16_v0(&A[i*D_K+k], &B[k*D_N + j], &C[i*D_N+j]);
             }
         }
