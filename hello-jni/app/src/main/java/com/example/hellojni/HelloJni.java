@@ -18,12 +18,9 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 
 import android.app.Activity;
-import android.view.View;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.os.Bundle;
 import android.os.Build;
-import android.support.v7.app.AppCompatActivity;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -33,7 +30,7 @@ import java.util.Calendar;
 import java.util.regex.Pattern;
 
 
-public class HelloJni extends AppCompatActivity
+public class HelloJni extends Activity
 {
 
     /** Called when the activity is first created. */
@@ -41,7 +38,6 @@ public class HelloJni extends AppCompatActivity
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
         /* Create a TextView and set its content.
          * the text is retrieved by calling a native
@@ -50,8 +46,8 @@ public class HelloJni extends AppCompatActivity
         TextView textJNI = new TextView(this);
         String mydate = java.text.DateFormat.getDateTimeInstance().format(Calendar.getInstance().getTime());
         String cpufreqstr = readCpuFreqNow();
-        String cpuinfo = "";
-        textJNI.setText(mydate + "\n" + cpuinfo + "\n" + "\n" + cpufreqstr);
+        String cpuinfo = "";//getCPUInfo();
+        textJNI.setText(mydate + "\n" + cpuinfo + "\n"+ stringFromJNI() + "\n" + cpufreqstr);
         setContentView(textJNI);
     }
 
@@ -59,7 +55,7 @@ public class HelloJni extends AppCompatActivity
      * 'hello-jni' native library, which is packaged
      * with this application.
      */
-    public native String  runJNI(int d1, int d2, int d3);
+    public native String  stringFromJNI();
 
     /* This is another native method declaration that is *not*
      * implemented by 'hello-jni'. This is simply to show that
@@ -81,6 +77,30 @@ public class HelloJni extends AppCompatActivity
     static {
         System.loadLibrary("hello-jni");
     }
+
+/*
+    private String getCPUInfo() {
+        StringBuffer sb = new StringBuffer();
+        sb.append("abi: ").append(Build.CPU_ABI).append("\n");
+        if (new File("/proc/cpuinfo").exists()) {
+            try {
+                BufferedReader br = new BufferedReader(new FileReader(new File("/proc/cpuinfo")));
+                String aLine;
+                while ((aLine = br.readLine()) != null) {
+                    sb.append(aLine + "\n");
+                }
+                if (br != null) {
+                    br.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return sb.toString();
+    }
+*/
+
+
 
     private String readCpuFreqNow(){
         File[] cpuFiles = getCPUs();
@@ -153,42 +173,5 @@ public class HelloJni extends AppCompatActivity
         File dir = new File("/sys/devices/system/cpu/");
         File[] files = dir.listFiles(new CpuFilter());
         return files;
-    }
-
-
-    public void runTest(String todisplay, int D_1, int D_2, int D_3) {
-        TextView tview = (TextView) findViewById(R.id.textView2);
-        todisplay = todisplay + ":" +Integer.toString(D_1) + "X" + Integer.toString(D_2)
-                + "X" + Integer.toString(D_3);
-        tview.setText(todisplay);
-        runJNI(D_1, D_2, D_3);
-    }
-
-    public void s1Run(View view) {
-        String todisplay="click s1Run";
-        runTest(todisplay, 512, 2048, 1);
-
-    }
-    public void s2Run(View view) {
-        String todisplay = "click s2Run";
-        runTest(todisplay, 8000, 640, 1);
-    }
-    public void m1Run(View view) {
-        String todisplay="click m1Run";
-        runTest(todisplay, 512, 2048, 128);
-    }
-    public void m2Run(View view) {
-        String todisplay="click m2Run";
-        runTest(todisplay, 8000, 640, 128);
-    }
-    public void customRun(View view) {
-        EditText d1Edit = (EditText) findViewById(R.id.editText1);
-        int d1 = Integer.parseInt(d1Edit.getText().toString());
-        EditText d2Edit = (EditText) findViewById(R.id.editText2);
-        int d2 = Integer.parseInt(d2Edit.getText().toString());
-        EditText d3Edit = (EditText) findViewById(R.id.editText3);
-        int d3 = Integer.parseInt(d3Edit.getText().toString());
-        String todisplay = "click customRun";
-        runTest(todisplay, d1, d2, d3);
     }
 }
