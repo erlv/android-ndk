@@ -7,6 +7,8 @@
 
 #include <stdint.h>
 
+#define BLOCKSIZE 128
+
 
 void mmNeon(int8_t* __restrict__ A, int8_t* __restrict__ B, int8_t* __restrict__ C,
               int D_M, int D_N, int D_K);

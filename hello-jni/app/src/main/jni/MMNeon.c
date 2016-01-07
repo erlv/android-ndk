@@ -174,65 +174,62 @@ STATIC void mmNeonMM_interchangeSIMD_v3(int8_t *__restrict__ matA, int8_t *__res
     }
 }
 
-void mmNeonMM_blocking_kernel_16x16_v1(int8_t* __restrict__ matA, int8_t* __restrict__ matB,
-                                    int8_t* __restrict__ matC) {
+void mmNeonMM_blocking_kernel_v1(int8_t* __restrict__ matA, int8_t* __restrict__ matB,
+                                    int8_t* __restrict__ matC, int D_M, int D_N, int D_K) {
     int i, j, k;
-    for (i = 0; i < 16; i++) {
-        for (k = 0; k < 16; k += 4) {
-            int8_t temp = matA[i * 16 + k];
-            int8_t temp_1 = matA[i * 16 + k + 1];
-            int8_t temp_2 = matA[i * 16 + k + 2];
-            int8_t temp_3 = matA[i * 16 + k + 3];
+    for (i = 0; i < BLOCKSIZE; i++) {
+        for (k = 0; k < BLOCKSIZE; k += 4) {
+            int8_t temp = matA[i * D_K + k];
+            int8_t temp_1 = matA[i * D_K + k + 1];
+            int8_t temp_2 = matA[i * D_K + k + 2];
+            int8_t temp_3 = matA[i * D_K + k + 3];
             int8x16_t v_temp = vdupq_n_s8(temp);
             int8x16_t v_temp_1 = vdupq_n_s8(temp_1);
             int8x16_t v_temp_2 = vdupq_n_s8(temp_2);
             int8x16_t v_temp_3 = vdupq_n_s8(temp_3);
-            for (j = 0; j < 16; j += 16) {
-                int8x16_t v_C_16 = vld1q_s8(&matC[i * 16 + j]);
-                int8x16_t v_B_16 = vld1q_s8(&matB[k * 16 + j]);
-                int8x16_t v_B_16_1 = vld1q_s8(&matB[(k + 1) * 16 + j]);
-                int8x16_t v_B_16_2 = vld1q_s8(&matB[(k + 2) * 16 + j]);
-                int8x16_t v_B_16_3 = vld1q_s8(&matB[(k + 3) * 16 + j]);
+            for (j = 0; j < BLOCKSIZE; j += 16) {
+                int8x16_t v_C_16 = vld1q_s8(&matC[i * D_N + j]);
+                int8x16_t v_B_16 = vld1q_s8(&matB[k * D_N + j]);
+                int8x16_t v_B_16_1 = vld1q_s8(&matB[(k + 1) * D_N + j]);
+                int8x16_t v_B_16_2 = vld1q_s8(&matB[(k + 2) * D_N + j]);
+                int8x16_t v_B_16_3 = vld1q_s8(&matB[(k + 3) * D_N + j]);
                 v_C_16 = vmlaq_s8(v_C_16, v_B_16, v_temp);
                 v_C_16 = vmlaq_s8(v_C_16, v_B_16_1, v_temp_1);
                 v_C_16 = vmlaq_s8(v_C_16, v_B_16_2, v_temp_2);
                 v_C_16 = vmlaq_s8(v_C_16, v_B_16_3, v_temp_3);
-                vst1q_s8(&matC[i * 16 + j], v_C_16);
+                vst1q_s8(&matC[i * D_N + j], v_C_16);
             }
         }
     }
 }
 
-void mmNeonMM_blocking_kernel_16x16_v0(int8_t* __restrict__ matA, int8_t* __restrict__ matB,
-                                       int8_t* __restrict__ matC) {
+void mmNeonMM_blocking_kernel_v0(int8_t* __restrict__ matA, int8_t* __restrict__ matB,
+                                       int8_t* __restrict__ matC, int D_M, int D_N, int D_K) {
     int i, j, k;
     for (i = 0; i < 16; i++) {
         for (k = 0; k < 16; k++) {
-            int8_t temp = matA[i * 16 + k];
+            int8_t temp = matA[i * D_K + k];
             for (j = 0; j < 16; j++) {
-                matC[i * 16 + j] += temp * matB[k * 16 + j];
+                matC[i * D_N + j] += temp * matB[k * D_N + j];
             }
         }
     }
-
-
 }
 static int min(int a, int b) {
     return a<b?a:b;
 }
 void mmNeonMM_interchangeSIMD_v4(int8_t* __restrict__ A, int8_t* __restrict__ B, int8_t* __restrict__ C,
               int D_M, int D_N, int D_K) {
-    const int block_size = 16;
     int i,j,k;
     for(i=0; i < D_M; i++) {
         for(j=0; j < D_N; j++) {
             C[i*D_N + j ] = 0;
         }
     }
-    for (i = 0; i < D_M; i+=block_size) {
-        for (k=0; k < D_K; k+=block_size) {
-            for (j = 0; j < D_N; j+=block_size) {
-                mmNeonMM_blocking_kernel_16x16_v0(&A[i*D_K+k], &B[k*D_N + j], &C[i*D_N+j]);
+    for (i = 0; i < D_M; i += BLOCKSIZE) {
+        for (k=0; k < D_K; k += BLOCKSIZE) {
+            for (j = 0; j < D_N; j += BLOCKSIZE) {
+                mmNeonMM_blocking_kernel_v1(&A[i*D_K+k], &B[k*D_N + j], &C[i*D_N+j], D_M, D_N, D_K);
             }
         }
     }

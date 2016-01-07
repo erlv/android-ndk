@@ -184,57 +184,57 @@ int32_t test_s32_mac_Neon(int32_t x, int32_t y, uint64_t iterations){
         while (i < GFLOPS_INNER_ITERATION){
             //  Here's the meat - the part that really matters.
 
-            r0 = vaddq_s32(r0,rC);
+            r0 = vmulq_s32(r0,rC);
             r1 = vsubq_s32(r1,rD);
-            r2 = vaddq_s32(r2,rE);
+            r2 = vmulq_s32(r2,rE);
             r3 = vsubq_s32(r3,rF);
-            r4 = vaddq_s32(r4,rC);
+            r4 = vmulq_s32(r4,rC);
             r5 = vsubq_s32(r5,rD);
-            r6 = vaddq_s32(r6,rE);
+            r6 = vmulq_s32(r6,rE);
             r7 = vsubq_s32(r7,rF);
-            r8 = vaddq_s32(r8,rC);
+            r8 = vmulq_s32(r8,rC);
             r9 = vsubq_s32(r9,rD);
-            rA = vaddq_s32(rA,rE);
+            rA = vmulq_s32(rA,rE);
             rB = vsubq_s32(rB,rF);
 
             r0 = vsubq_s32(r0,rF);
-            r1 = vaddq_s32(r1,rE);
+            r1 = vmulq_s32(r1,rE);
             r2 = vsubq_s32(r2,rD);
-            r3 = vaddq_s32(r3,rC);
+            r3 = vmulq_s32(r3,rC);
             r4 = vsubq_s32(r4,rF);
-            r5 = vaddq_s32(r5,rE);
+            r5 = vmulq_s32(r5,rE);
             r6 = vsubq_s32(r6,rD);
-            r7 = vaddq_s32(r7,rC);
+            r7 = vmulq_s32(r7,rC);
             r8 = vsubq_s32(r8,rF);
-            r9 = vaddq_s32(r9,rE);
+            r9 = vmulq_s32(r9,rE);
             rA = vsubq_s32(rA,rD);
-            rB = vaddq_s32(rB,rC);
+            rB = vmulq_s32(rB,rC);
 
-            r0 = vaddq_s32(r0,rC);
+            r0 = vmulq_s32(r0,rC);
             r1 = vsubq_s32(r1,rD);
-            r2 = vaddq_s32(r2,rE);
+            r2 = vmulq_s32(r2,rE);
             r3 = vsubq_s32(r3,rF);
-            r4 = vaddq_s32(r4,rC);
+            r4 = vmulq_s32(r4,rC);
             r5 = vsubq_s32(r5,rD);
-            r6 = vaddq_s32(r6,rE);
+            r6 = vmulq_s32(r6,rE);
             r7 = vsubq_s32(r7,rF);
-            r8 = vaddq_s32(r8,rC);
+            r8 = vmulq_s32(r8,rC);
             r9 = vsubq_s32(r9,rD);
-            rA = vaddq_s32(rA,rE);
+            rA = vmulq_s32(rA,rE);
             rB = vsubq_s32(rB,rF);
 
             r0 = vsubq_s32(r0,rF);
-            r1 = vaddq_s32(r1,rE);
+            r1 = vmulq_s32(r1,rE);
             r2 = vsubq_s32(r2,rD);
-            r3 = vaddq_s32(r3,rC);
+            r3 = vmulq_s32(r3,rC);
             r4 = vsubq_s32(r4,rF);
-            r5 = vaddq_s32(r5,rE);
+            r5 = vmulq_s32(r5,rE);
             r6 = vsubq_s32(r6,rD);
-            r7 = vaddq_s32(r7,rC);
+            r7 = vmulq_s32(r7,rC);
             r8 = vsubq_s32(r8,rF);
-            r9 = vaddq_s32(r9,rE);
+            r9 = vmulq_s32(r9,rE);
             rA = vsubq_s32(rA,rD);
-            rB = vaddq_s32(rB,rC);
+            rB = vmulq_s32(rB,rC);
             i++;
         }
 

@@ -204,17 +204,19 @@ int fake_main_v1(int d1, int d2, int d3) {
     time_s = (after_curms - prev_curms)/(double)1000;
     ops = (2.0 * NeonMMREPEAT * A_R * C_C * A_C) / time_s;
     gops = ops / (double)1000000000;
-    char_cnt = sprintf(cur_jni_ptr, "%lld x NeonMM runtime: %.3fs, %.3fGOPS\n", NeonMMREPEAT,
-                       time_s, gops);
+    char_cnt = sprintf(cur_jni_ptr, "%lld x NeonMM blk sz %d runtime: %.3fs, %.3fGOPS\n", NeonMMREPEAT,
+                       BLOCKSIZE, time_s, gops);
     cur_jni_ptr += char_cnt;
 }
 
 int fake_main() {
 
-    fake_main_v1(512, 2048, 1);
-    fake_main_v1(8000, 640, 1);
+    //fake_main_v1(512, 2048, 1);
+    //fake_main_v1(8000, 640, 1);
     fake_main_v1(512, 2048, 128);
-    fake_main_v1(8000, 640, 128);
+    //fake_main_v1(512, 2048, 256);
+
+    //fake_main_v1(8000, 640, 128);
     return 0;
 }
 
@@ -225,16 +227,11 @@ int main() {
     return 0;
 }
 
-/* This is a trivial JNI example where we use a native method
- * to return a new VM String. See the corresponding Java source
- * file located at:
- *
- *   apps/samples/hello-jni/project/src/com/example/hellojni/HelloJni.java
- */
 jstring
 Java_com_example_hellojni_HelloJni_stringFromJNI( JNIEnv* env,
-                                                  jobject thiz, jint d1, jint d2, jint d3 )
+                                                  jobject thiz )
 {
-    fake_main_v1(d1, d2, d3);
+
+    fake_main();
     return (*env)->NewStringUTF(env, jni_buf);
 }
